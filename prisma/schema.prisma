@@ -1,0 +1,79 @@
+// Prisma Schema for "Hôm Nay Ăn Gì?"
+// Mặc định dùng SQLite (file:./dev.db) cho môi trường dev.
+// Khi deploy Production với PostgreSQL, chỉ cần đổi provider = "postgresql"
+// và cập nhật DATABASE_URL trong file .env (cấu trúc bảng tương thích 100% chuẩn SQL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  firebaseUid  String?       @unique
+  email        String        @unique
+  passwordHash String
+  name         String
+  role         String        @default("USER") // "USER" | "ADMIN"
+  createdAt    DateTime      @default(now())
+
+  favorites    Favorite[]
+  spinHistory  SpinHistory[]
+
+  @@index([role])
+}
+
+model Food {
+  id                String        @id
+  name              String
+  price             Int
+  mainGroup         String
+  subCategory       String
+  rarity            String
+  isVegetarian      Boolean       @default(false)
+  rating            Float         @default(4.8)
+  imageUrl          String
+  description       String
+  restaurantName    String
+  restaurantAddress String
+  lat               Float
+  lng               Float
+
+  favorites         Favorite[]
+  spinHistory       SpinHistory[]
+
+  @@index([mainGroup])
+  @@index([subCategory])
+  @@index([rarity])
+  @@index([price])
+  @@index([isVegetarian])
+}
+
+model Favorite {
+  userId    String
+  foodId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food      Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@id([userId, foodId])
+  @@index([foodId])
+}
+
+model SpinHistory {
+  id              String @id @default(uuid())
+  userId          String
+  foodId          String
+  timestampMillis BigInt
+
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food            Food   @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestampMillis])
+  @@index([foodId])
+}
